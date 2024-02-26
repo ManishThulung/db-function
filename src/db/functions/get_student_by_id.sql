@@ -21,7 +21,7 @@ BEGIN
     FROM students s
     INNER JOIN courses c ON s."course_id" = c.course_id
     INNER JOIN courses_subjects cs ON s."course_id" = cs."course_id"
-	INNER JOIN subjects subj ON cs."subject_id" = subj.subject_id
+	  INNER JOIN subjects subj ON cs."subject_id" = subj.subject_id
     WHERE s.student_id = s_id AND s."deleted_at" IS NULL
     GROUP BY s.student_id, s.name, s.age, c.course_id, c.name;
 

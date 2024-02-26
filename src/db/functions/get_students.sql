@@ -1,18 +1,20 @@
 CREATE OR REPLACE FUNCTION get_students()
-RETURNS TABLE (
-    "id" INT,
-    "fullName" VARCHAR,
-    "age" INT,
-    "courseId" INT
-)
+RETURNS JSONB
 AS $$
+DECLARE
+    result JSONB;
 BEGIN
-    RETURN QUERY SELECT
-        "s"."id",
-        "s"."fullName",
-        "s"."age",
-        "s"."courseId"
-    FROM "students" "s"
-    WHERE "s"."deletedAt" IS NULL;
+    SELECT jsonb_agg(jsonb_build_object(
+    	'id', s.student_id,
+        'name', s.name,
+		'age', s.age,
+		'course_id', s.course_id
+      )
+    )
+    INTO result
+    FROM students s
+    WHERE s."deleted_at" IS NULL;
+
+    RETURN result;
 END;
 $$ LANGUAGE plpgsql;

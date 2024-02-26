@@ -7,9 +7,10 @@ export const getStudents = async (
   next: NextFunction
 ) => {
   try {
-    const result = await pool.query("select get_courses()");
+    const students = await pool.query("select get_students()");
+    const result = students?.rows[0];
 
-    res.status(200).json({ result });
+    res.status(200).json(result);
   } catch (error) {
     next(error);
   }
@@ -25,6 +26,10 @@ export const getStudentById = async (
       `select get_student_by_id(${req.params.id})`
     );
     const result = student?.rows[0];
+
+    if (!result["get_student_by_id"]) {
+      res.status(404).json({ message: "Not Found!" });
+    }
 
     res.status(200).json(result);
   } catch (error) {
@@ -60,40 +65,16 @@ export const createStudent = async (
   }
 };
 
-// export const updateStudent = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   try {
-//     await Student.update(
-//       { age: req.body.age },
-//       { where: { id: req.params.id } }
-//     );
-//     res.status(200).json({
-//       success: true,
-//       message: "update successfully",
-//     });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
-
-// export const deleteStudent = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   try {
-//     await Student.update(
-//       { deletedAt: Date.now() },
-//       { where: { id: req.params.id } }
-//     );
-//     res.status(200).json({
-//       success: true,
-//       message: "deleted",
-//     });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
+export const deleteStudent = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const student = await pool.query(`select delete_student(${req.params.id})`);
+    const result = student?.rows[0];
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
