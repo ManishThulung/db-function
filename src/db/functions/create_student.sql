@@ -1,49 +1,77 @@
-CREATE OR REPLACE FUNCTION create_or_update_studenttt(
-    student_id INT,
-    student_fullName VARCHAR,
-    student_age INT,
-    course_id INT,
-    course_name VARCHAR
+CREATE OR REPLACE FUNCTION create_or_update_student(
+    s_id INT,
+    s_name VARCHAR,
+    s_age INT,
+    c_id INT,
+    c_name VARCHAR,
+    subjects json
 )
 RETURNS VARCHAR
 AS $$
 DECLARE
     created_course_id INT;
+    created_subject_id INT;
+	subjects_array jsonb;
+	subject VARCHAR;
 BEGIN
-    IF course_id IS NOT NULL AND EXISTS(SELECT 1 FROM courses WHERE id = course_id AND "deletedAt" IS NULL) THEN
+	subjects_array := subjects::jsonb;
+	
+    IF c_id IS NOT NULL AND EXISTS(SELECT 1 FROM courses WHERE course_id = c_id AND "deleted_at" IS NULL) THEN
         UPDATE courses
-        SET name = course_name
-        WHERE id = course_id;
+        SET name = c_name
+        WHERE course_id = c_id;
 
-        IF student_id IS NOT NULL AND EXISTS(SELECT 1 FROM students WHERE id = student_id AND "deletedAt" IS NULL) THEN
+        FOR subject IN SELECT value FROM jsonb_array_elements_text(subjects_array)
+            LOOP
+                IF EXISTS(SELECT 1 from subjects WHERE name = subject) THEN
+                    SELECT 1 from subjects WHERE name = subject RETURNING "subject_id" INTO created_subject_id;
+                ELSE
+                    INSERT INTO subjects (name) VALUES (subject) RETURNING "subject_id" INTO created_subject_id;
+                END IF;
+                
+                INSERT INTO courses_subjects ("course_id", "subject_id") VALUES (c_id, created_subject_id);
+            END LOOP;
+
+        IF s_id IS NOT NULL AND EXISTS(SELECT 1 FROM students WHERE student_id = s_id AND "deleted_at" IS NULL) THEN
             UPDATE students
-            SET "fullName" = student_fullName, "courseId" = course_id
-            WHERE id = student_id;
+            SET name = s_name, "course_id" = c_id
+            WHERE student_id = s_id;
             RETURN 'updated successfully';
         ELSE
-            IF student_id IS NULL THEN
-                INSERT INTO students ("fullName", age, "courseId", "createdAt", "updatedAt", "deletedAt")
-                VALUES (student_fullName, student_age, course_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL);
+            IF s_id IS NULL THEN
+                INSERT INTO students (name, age, "course_id", "created_at", "updated_at", "deleted_at")
+                VALUES (s_name, s_age, created_subject_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL);
                 RETURN 'created successfully';
             ELSE
                 RETURN "student id not found!";
             END IF;
         END IF;
     ELSE
-        IF course_id IS NULL THEN
-            INSERT INTO courses ("name", "createdAt", "updatedAt", "deletedAt")
-            VALUES (course_name, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL)
-            RETURNING "id" INTO created_course_id;
+        IF c_id IS NULL THEN
+            INSERT INTO courses ("name", "created_at", "updated_at", "deleted_at")
+            VALUES (c_name, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL)
+            RETURNING "course_id" INTO created_course_id;
 
-            IF student_id IS NOT NULL AND EXISTS(SELECT 1 FROM students WHERE id = student_id AND "deletedAt" IS NULL) THEN
+            FOR subject IN SELECT value FROM jsonb_array_elements_text(subjects_array)
+            LOOP
+                IF EXISTS(SELECT 1 from subjects WHERE name = subject) THEN
+                    SELECT 1 from subjects WHERE name = subject RETURNING "subject_id" INTO created_subject_id;
+                ELSE
+                    INSERT INTO subjects (name) VALUES (subject) RETURNING "subject_id" INTO created_subject_id;
+                END IF;
+                
+                INSERT INTO courses_subjects ("course_id", "subject_id") VALUES (c_id, created_subject_id);
+            END LOOP;
+
+            IF s_id IS NOT NULL AND EXISTS(SELECT 1 FROM students WHERE student_id = s_id AND "deleted_at" IS NULL) THEN
                 UPDATE students
-                SET "fullName" = student_fullName, "courseId" = created_course_id
-                WHERE id = student_id;
+                SET name = s_name, "course_id" = created_course_id
+                WHERE student_id = s_id;
                 RETURN 'updated successfully';
             ELSE
-                IF student_id IS NULL THEN
-                    INSERT INTO students ("fullName", age, "courseId", "createdAt", "updatedAt", "deletedAt")
-                    VALUES (student_fullName, student_age, course_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL);
+                IF s_id IS NULL THEN
+                    INSERT INTO students (name, age, "course_id", "created_at", "updated_at", "deleted_at")
+                    VALUES (s_name, s_age, created_course_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL);
                     RETURN 'created successfully';
                 ELSE
                     RETURN 'student id not found!';
@@ -60,58 +88,96 @@ $$ LANGUAGE plpgsql;
 
 
 -- CREATE OR REPLACE FUNCTION create_or_update_student(
---     student_id INT,
---     student_fullName VARCHAR,
---     student_age INT,
---     course_id INT,
---     course_name VARCHAR,
---     subjects VARCHAR[]
+--     s_id INT,
+--     s_name VARCHAR,
+--     s_age INT,
+--     c_id INT,
+--     c_name VARCHAR,
+--     subjects json
 -- )
 -- RETURNS VARCHAR
 -- AS $$
+-- DECLARE
+--     created_course_id INT;
+--     created_subject_id INT;
+-- 	subjects_array jsonb;
+-- 	subject VARCHAR;
 -- BEGIN
---     IF student_id IS NOT NULL THEN
---         -- Update existing student
---         UPDATE students
---         SET
---             fullName = student_fullName,
---             age = student_age
---         WHERE id = student_id;
+-- 	subjects_array := subjects::jsonb;
+	
+--     IF c_id IS NOT NULL AND EXISTS(SELECT 1 FROM courses WHERE course_id = c_id AND "deleted_at" IS NULL) THEN
+--         UPDATE courses
+--         SET name = c_name
+--         WHERE course_id = c_id;
 
---         IF NOT FOUND THEN
---             RETURN 'Student not found';
+--         FOR subject IN SELECT value FROM jsonb_array_elements_text(subjects_array)
+--             LOOP
+--                 IF EXISTS(SELECT 1 from subjects WHERE name = subject) THEN
+--                     SELECT subject_id INTO created_subject_id FROM subjects WHERE name = subject;
+--                 ELSE
+--                     INSERT INTO subjects (name) VALUES (subject) RETURNING "subject_id" INTO created_subject_id;
+--                 END IF;
+                
+--                 INSERT INTO courses_subjects ("course_id", "subject_id") VALUES (c_id, created_subject_id);
+--             END LOOP;
+
+--         IF s_id IS NOT NULL AND EXISTS(SELECT 1 FROM students WHERE student_id = s_id AND "deleted_at" IS NULL) THEN
+--             UPDATE students
+--             SET name = s_name, "course_id" = c_id
+--             WHERE student_id = s_id;
+--             RETURN 'updated successfully';
+--         ELSE
+--             IF s_id IS NULL THEN
+--                 INSERT INTO students (name, age, "course_id", "created_at", "updated_at", "deleted_at")
+--                 VALUES (s_name, s_age, created_subject_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL);
+--                 RETURN 'created successfully';
+--             ELSE
+--                 RETURN "student id not found!";
+--             END IF;
+--         END IF;
+--     ELSE
+--         IF c_id IS NULL THEN
+--             INSERT INTO courses ("name", "created_at", "updated_at", "deleted_at")
+--             VALUES (c_name, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL)
+--             RETURNING "course_id" INTO created_course_id;
+
+--             FOR subject IN SELECT value FROM jsonb_array_elements_text(subjects_array)
+--             LOOP
+--                 IF EXISTS(SELECT 1 from subjects WHERE name = subject) THEN
+--                     SELECT subject_id INTO created_subject_id FROM subjects WHERE name = subject;
+--                 ELSE
+--                     INSERT INTO subjects (name) VALUES (subject) RETURNING "subject_id" INTO created_subject_id;
+--                 END IF;
+				
+-- 				IF NOT EXISTS (
+--         			SELECT 1 FROM courses_subjects
+--        				 WHERE "course_id" = created_course_id AND "subject_id" = created_subject_id
+--     			) THEN
+--         			INSERT INTO courses_subjects ("course_id", "subject_id") VALUES (created_course_id, created_subject_id);
+--     			END IF;
+                
+--             END LOOP;
+
+--             IF s_id IS NOT NULL AND EXISTS(SELECT 1 FROM students WHERE student_id = s_id AND "deleted_at" IS NULL) THEN
+--                 UPDATE students
+--                 SET name = s_name, "course_id" = created_course_id
+--                 WHERE student_id = s_id;
+--                 RETURN 'updated successfully';
+--             ELSE
+--                 IF s_id IS NULL THEN
+--                     INSERT INTO students (name, age, "course_id", "created_at", "updated_at", "deleted_at")
+--                     VALUES (s_name, s_age, created_course_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL);
+--                     RETURN 'created successfully';
+--                 ELSE
+--                     RETURN 'student id not found!';
+--                 END IF;
+--             END IF;
+--         ELSE
+--             RETURN 'course id does not exist!';
 --         END IF;
 
---         -- Update existing course
---         UPDATE courses
---         SET
---             name = course_name
---         WHERE id = course_id;
-
---         -- Delete existing subjects for the course
---         DELETE FROM subjects WHERE courseId = course_id;
-
---         -- Insert new subjects
---         FOREACH subj IN ARRAY subjects
---         LOOP
---             INSERT INTO subjects (name, courseId) VALUES (subj, course_id);
---         END LOOP;
-
---         RETURN 'Student and Course updated successfully';
---     ELSE
---         -- Insert new student
---         INSERT INTO students (fullName, age) VALUES (student_fullName, student_age) RETURNING id INTO student_id;
-
---         -- Insert new course
---         INSERT INTO courses (id, name) VALUES (course_id, course_name) ON CONFLICT (id) DO UPDATE SET name = course_name;
-
---         -- Insert new subjects
---         FOREACH subj IN ARRAY subjects
---         LOOP
---             INSERT INTO subjects (name, courseId) VALUES (subj, course_id);
---         END LOOP;
-
---         RETURN 'Student and Course created successfully';
 --     END IF;
 -- END;
 -- $$ LANGUAGE plpgsql;
+
+

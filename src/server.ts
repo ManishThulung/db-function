@@ -1,5 +1,4 @@
 import express, { Express, NextFunction, Request, Response } from "express";
-import { pool } from "./db";
 import StudentRouter from "./routes/student-routes";
 import CourseRouter from "./routes/course-routes";
 import SubjectRouter from "./routes/subject-routes";
