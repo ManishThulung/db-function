@@ -52,14 +52,16 @@ export const createStudent = async (
     //   });
     // }
 
-    const subjectArray = JSON.stringify(subjects).replace(/ /g, "");
-    // const subjectArray = `["${subjects.join('","')}"]`;
+    const subjectArray = JSON.stringify(subjects);
 
     const course = await pool.query(
-      `SELECT create_or_update_student(${id}, ${name}, ${age}, ${courseId}, ${courseName}, ${subjectArray})`
+      `select create_or_update_student($1, $2, $3, $4, $5, $6)`,
+      [id, name, age, courseId, courseName, subjectArray]
     );
 
-    res.status(200).json({ result: course });
+    const result = course?.rows[0];
+
+    res.status(200).json({ result: result });
   } catch (error) {
     next(error);
   }
