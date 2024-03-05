@@ -29,3 +29,11 @@ BEGIN
     RETURN result;
 END;
 $$ LANGUAGE plpgsql;
+
+
+-- select u.user_id, u.name, c.category_id, c.name, p.name, p.product_id from users u
+-- join users_products up on u.user_id = up.user_id
+-- join categories_products cp on cp.product_id = up.product_id
+-- join products p on p.product_id = cp.product_id
+-- join categories c on c.category_id = cp.category_id
+-- where u.user_id = 23 and u.deleted_at is null;
