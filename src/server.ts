@@ -3,6 +3,7 @@ import StudentRouter from "./routes/student-routes";
 import CourseRouter from "./routes/course-routes";
 import SubjectRouter from "./routes/subject-routes";
 import UserRouter from "./routes/user-routes";
+import CategoryRouter from "./routes/category-routes";
 
 const app: Express = express();
 const port = process.env.PORT || 8000;
@@ -29,6 +30,7 @@ app.use("/api/students", StudentRouter);
 app.use("/api/courses", CourseRouter);
 app.use("/api/subjects", SubjectRouter);
 app.use("/api/users", UserRouter);
+app.use("/api/categories", CategoryRouter);
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   const errorStatus = err.status || 500;
