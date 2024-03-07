@@ -16,22 +16,37 @@ export const getCategories = async (
   }
 };
 
+export const getMainCategoryById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const category = await pool.query(
+      `select get_main_category_by_id(${req.params.id})`
+    );
+
+    const result = category?.rows[0];
+
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getCategoryById = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const categorie = await pool.query(
-      `select get_categorie_by_iddd(${req.params.id})`
+    const category = await pool.query(
+      `select get_category_by_id(${req.params.id})`
     );
-    // const result = categorie;
 
-    // if (!result["get_categorie_by_id"]) {
-    //   res.status(404).json({ message: "Not Found!" });
-    // }
+    const result = category?.rows[0];
 
-    res.status(200).json(categorie);
+    res.status(200).json(result);
   } catch (error) {
     next(error);
   }
