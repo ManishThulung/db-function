@@ -16,24 +16,6 @@ export const getCategories = async (
   }
 };
 
-export const getMainCategoryById = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const category = await pool.query(
-      `select get_main_category_by_id(${req.params.id})`
-    );
-
-    const result = category?.rows[0];
-
-    res.status(200).json(result);
-  } catch (error) {
-    next(error);
-  }
-};
-
 export const getCategoryById = async (
   req: Request,
   res: Response,
