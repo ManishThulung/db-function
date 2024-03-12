@@ -117,9 +117,14 @@ export const generateCsv = async (
   next: NextFunction
 ) => {
   try {
-    const { tname, fname } = req.query;
+    const { tname } = req.query;
+    const fileName = (tname + Date())
+      .split(" GMT")[0]
+      .replace(/\s/g, "-")
+      .replace(/:/g, "-");
+
     const users = await pool.query(`select export_to_csv($1, $2)`, [
-      fname,
+      fileName,
       tname,
     ]);
     const result = users?.rows[0];
