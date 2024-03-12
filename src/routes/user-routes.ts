@@ -3,6 +3,7 @@ import {
   createStore,
   createUser,
   deleteUser,
+  generateCsv,
   getStores,
   getUserById,
   getUsers,
@@ -17,5 +18,7 @@ router.delete("/:id", deleteUser);
 
 router.get("/store/stores", getStores);
 router.post("/store/create", createStore);
+
+router.get("/generate-csv/export", generateCsv);
 
 export default router;

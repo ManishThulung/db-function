@@ -110,3 +110,22 @@ export const createStore = async (
     next(error);
   }
 };
+
+export const generateCsv = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { tname, fname } = req.query;
+    const users = await pool.query(`select export_to_csv($1, $2)`, [
+      fname,
+      tname,
+    ]);
+    const result = users?.rows[0];
+
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
