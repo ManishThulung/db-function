@@ -1,5 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { pool } from "../db";
+import * as path from "path";
+import { Parser } from "json2csv";
 
 export const getUsers = async (
   req: Request,
@@ -111,25 +113,66 @@ export const createStore = async (
   }
 };
 
+export const generateCsvById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const { path } = req.body;
+
+    const fileName = ("user-" + id + Date())
+      .split(" GMT")[0]
+      .replace(/\s/g, "-")
+      .replace(/:/g, "-");
+
+    const users = await pool.query(
+      `select export_to_csv_by_user_id($1, $2, $3)`,
+      [fileName, id, path]
+    );
+    const result = users?.rows[0];
+
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const generateCsv = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { tname } = req.query;
-    const fileName = (tname + Date())
+    const { id } = req.params;
+    const users = await pool.query(`select * from get_user_by_iddd($1)`, [id]);
+
+    const fileName = ("user-" + id + Date())
       .split(" GMT")[0]
       .replace(/\s/g, "-")
       .replace(/:/g, "-");
 
-    const users = await pool.query(`select export_to_csv($1, $2)`, [
-      fileName,
-      tname,
-    ]);
-    const result = users?.rows[0];
+    const result = users.rows;
 
-    res.status(200).json(result);
+    const csvFields = [
+      "user_id",
+      "user_name",
+      "category_id",
+      "category_name",
+      "product_name",
+      "product_name",
+    ];
+    const json2csvParser = new Parser({ fields: csvFields });
+    const csvData = json2csvParser.parse(result);
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=${fileName}.csv`
+    );
+
+    res.status(200).end(csvData);
   } catch (error) {
     next(error);
   }
