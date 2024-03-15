@@ -172,7 +172,7 @@ export const generateCsv = async (
       `attachment; filename=${fileName}.csv`
     );
 
-    res.status(200).end(csvData);
+    res.status(200).send(csvData);
   } catch (error) {
     next(error);
   }

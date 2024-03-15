@@ -15,18 +15,6 @@ app.get("/", (req: Request, res: Response) => {
   res.send("Express + TypeScript Server");
 });
 
-// app.get("/test", async (req: Request, res: Response) => {
-//   const result = await pool.query("SELECT * FROM test", (err, result) => {
-//     if (err) {
-//       console.error("Error executing query:", err);
-//     } else {
-//       const response = result?.rows;
-//       res.status(200).json({ response });
-//     }
-//   });
-//   console.log(result, "result");
-// });
-
 app.use("/api/students", StudentRouter);
 app.use("/api/courses", CourseRouter);
 app.use("/api/subjects", SubjectRouter);
