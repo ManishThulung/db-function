@@ -5,9 +5,13 @@ import SubjectRouter from "./routes/subject-routes";
 import UserRouter from "./routes/user-routes";
 import CategoryRouter from "./routes/category-routes";
 import ProductRouter from "./routes/product-routes";
+import AuthRouter from "./routes/auth-routes";
+
+import { configDotenv } from "dotenv";
+configDotenv();
 
 const app: Express = express();
-const port = process.env.PORT || 8000;
+const port = process.env.PORT;
 
 app.use(express.json());
 
@@ -21,6 +25,7 @@ app.use("/api/subjects", SubjectRouter);
 app.use("/api/users", UserRouter);
 app.use("/api/categories", CategoryRouter);
 app.use("/api/products", ProductRouter);
+app.use("/api/auth", AuthRouter);
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   const errorStatus = err.status || 500;

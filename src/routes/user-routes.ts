@@ -9,11 +9,12 @@ import {
   getUserById,
   getUsers,
 } from "../controllers/user-controllers";
+import { verifyToken } from "../middleware/auth-middleware";
 
 const router = Router();
 
 router.get("/", getUsers);
-router.get("/:id", getUserById);
+router.get("/:id", verifyToken, getUserById);
 router.post("/", createUser);
 router.delete("/:id", deleteUser);
 
