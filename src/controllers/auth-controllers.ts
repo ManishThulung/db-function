@@ -3,6 +3,8 @@ import { pool } from "../db";
 import { hashPassword } from "../bcrypt/password-hash";
 import { comparePassword } from "../bcrypt/password-compare";
 import jwt from "jsonwebtoken";
+import { generate } from "otp-generator";
+import { mailSender } from "../utils/mail-sender";
 
 export const registerUser = async (
   req: Request,
@@ -56,7 +58,7 @@ export const loginUser = async (
 
     const user = result.rows[0];
 
-    const { passwordHash, email, name } = JSON.parse(user?.find_user);
+    const { passwordHash } = JSON.parse(user?.find_user);
 
     const isPasswordCorrect = await comparePassword(password, passwordHash);
 
@@ -65,70 +67,71 @@ export const loginUser = async (
       return;
     }
 
-    const token = jwt.sign(
-      {
-        email,
-        name,
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "1h",
-      }
+    let otp = generate(6, {
+      upperCaseAlphabets: false,
+      lowerCaseAlphabets: false,
+      specialChars: false,
+    });
+
+    await pool.query(`select update_otp($1, $2)`, [emails, otp]);
+
+    const mail = await mailSender(
+      emails,
+      "OTP Verification",
+      `<h3>Verify your OPT: ${otp}</h3>`
     );
-    res.status(200).json({ token });
+
+    if (mail) {
+      res.status(200).json({
+        message: "OTP has been sent to your email please verify it first!",
+      });
+    }
+
+    res.status(200).json({ message: "try again" });
   } catch (error) {
     next(error);
   }
 };
 
-// export const getUserById = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   try {
-//     const user = await pool.query(`select get_user_by_idd(${req.params.id})`);
-//     const result = user.rows[0];
+export const verifyLogin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { emails, userOtp } = req.body;
 
-//     res.status(200).json(result);
-//   } catch (error) {
-//     next(error);
-//   }
-// };
+    const ifEmailExits = await pool.query(`select check_email_if_exists($1)`, [
+      emails,
+    ]);
 
-// export const createUser = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   try {
-//     const { id, name, products } = req.body;
+    if (!ifEmailExits?.rows[0].check_email_if_exists) {
+      res.status(403).json({ message: "invalid credentials" });
+      return;
+    }
 
-//     const productArray = JSON.stringify(products);
+    const result = await pool.query(`select find_user($1)`, [emails]);
+    const user = result.rows[0];
+    const { email, name, otp, otpExpireTime } = JSON.parse(user?.find_user);
 
-//     const course = await pool.query(
-//       `select create_or_update_user($1, $2, $3)`,
-//       [id, name, productArray]
-//     );
+    const otpExpirationTime = new Date(otpExpireTime);
+    otpExpirationTime.setMinutes(otpExpirationTime.getMinutes() + 3);
+    const currentDate = new Date();
 
-//     const result = course?.rows[0];
+    if (otpExpirationTime < currentDate) {
+      res.status(401).json({ message: "OTP Expired!" });
+      return;
+    }
 
-//     res.status(200).json({ result: result });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
-
-// export const deleteUser = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   try {
-//     const user = await pool.query(`select delete_user(${req.params.id})`);
-//     const result = user?.rows[0];
-//     res.status(200).json(result);
-//   } catch (error) {
-//     next(error);
-//   }
-// };
+    if (userOtp === otp) {
+      const token = jwt.sign({ name, email }, process.env.JWT_SECRET, {
+        expiresIn: "1hr",
+      });
+      res.status(200).json({ token });
+      return;
+    }
+    res.status(401).json({ message: "Unauthorized" });
+  } catch (error) {
+    next(error);
+  }
+};
