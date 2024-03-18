@@ -115,7 +115,10 @@ export const verifyLogin = async (
     const { email, name, otp, otpExpireTime } = JSON.parse(user?.find_user);
 
     const otpExpirationTime = new Date(otpExpireTime);
-    otpExpirationTime.setMinutes(otpExpirationTime.getMinutes() + 3);
+    otpExpirationTime.setMinutes(
+      otpExpirationTime.getMinutes() +
+        Number(process.env.TOKEN_EXPIRATION_MINUTE)
+    );
     const currentDate = new Date();
 
     if (otpExpirationTime < currentDate) {

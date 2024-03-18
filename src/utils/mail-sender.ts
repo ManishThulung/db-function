@@ -6,16 +6,15 @@ export const mailSender = async (
   body: string
 ) => {
   try {
-    // Create a Transporter to send emails
     let transporter = nodemailer.createTransport({
       service: "gmail",
       secure: true,
       auth: {
         user: process.env.MAIL_USER,
-        pass: "diju eylw dplu zcwh",
+        pass: process.env.MAIL_PASS,
       },
     });
-    // Send emails to users
+
     let info = await transporter.sendMail({
       from: process.env.MAIL_USER,
       to: email,
