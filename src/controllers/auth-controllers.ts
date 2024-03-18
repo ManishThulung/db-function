@@ -5,6 +5,8 @@ import { comparePassword } from "../bcrypt/password-compare";
 import jwt from "jsonwebtoken";
 import { generate } from "otp-generator";
 import { mailSender } from "../utils/mail-sender";
+import speakeasy from "speakeasy";
+import qrcode from "qrcode";
 
 export const registerUser = async (
   req: Request,
@@ -85,6 +87,7 @@ export const loginUser = async (
       res.status(200).json({
         message: "OTP has been sent to your email please verify it first!",
       });
+      return;
     }
 
     res.status(200).json({ message: "try again" });
@@ -133,6 +136,94 @@ export const verifyLogin = async (
       res.status(200).json({ token });
       return;
     }
+    res.status(401).json({ message: "Unauthorized" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const loginUserGoogleApp = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { emails, password } = req.body;
+
+    const ifEmailExits = await pool.query(`select check_email_if_exists($1)`, [
+      emails,
+    ]);
+
+    if (!ifEmailExits?.rows[0].check_email_if_exists) {
+      res.status(403).json({ message: "invalid credentials" });
+      return;
+    }
+
+    const result = await pool.query(`select find_user($1)`, [emails]);
+
+    const user = result.rows[0];
+
+    const { passwordHash } = JSON.parse(user?.find_user);
+
+    const isPasswordCorrect = await comparePassword(password, passwordHash);
+
+    if (!isPasswordCorrect) {
+      res.status(403).json({ message: "invalid credentials" });
+      return;
+    }
+
+    const secretKey = speakeasy.generateSecret({ length: 20 });
+
+    await pool.query(`select update_otp($1, $2)`, [emails, secretKey]);
+
+    qrcode.toDataURL(secretKey.otpauth_url, (err: any, imageUrl: string) => {
+      if (err) {
+        console.error("Error generating QR code:", err);
+        return;
+      }
+      res.status(200).json({ secretKey: secretKey.base32, imageUrl });
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyLoginGoogleApp = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { emails, userOtp } = req.body;
+
+    const ifEmailExits = await pool.query(`select check_email_if_exists($1)`, [
+      emails,
+    ]);
+
+    if (!ifEmailExits?.rows[0].check_email_if_exists) {
+      res.status(403).json({ message: "invalid credentials" });
+      return;
+    }
+
+    const result = await pool.query(`select find_user($1)`, [emails]);
+    const user = result.rows[0];
+    const { email, name, otp } = JSON.parse(user?.find_user);
+    const { base32 } = JSON.parse(otp);
+
+    const verified = speakeasy.totp.verify({
+      secret: base32,
+      encoding: "base32",
+      token: userOtp,
+    });
+
+    if (verified) {
+      const token = jwt.sign({ name, email }, process.env.JWT_SECRET, {
+        expiresIn: "1hr",
+      });
+      res.status(200).json({ token });
+      return;
+    }
+
     res.status(401).json({ message: "Unauthorized" });
   } catch (error) {
     next(error);
