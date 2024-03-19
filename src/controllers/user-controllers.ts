@@ -18,6 +18,25 @@ export const getUsers = async (
   }
 };
 
+export const getUsersPaginated = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { page, perPage } = req.query;
+    const users = await pool.query("select get_students_paginated($1, $2)", [
+      page,
+      perPage,
+    ]);
+    const result = users?.rows[0];
+
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getUserById = async (
   req: Request,
   res: Response,
