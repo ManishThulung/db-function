@@ -21,6 +21,7 @@ export const mailSender = async (
       subject: title,
       html: body,
     });
+    console.log("Message sent: %s", info.messageId);
     return info;
   } catch (error) {
     throw new Error(error);

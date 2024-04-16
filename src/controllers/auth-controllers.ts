@@ -7,6 +7,8 @@ import { generate } from "otp-generator";
 import { mailSender } from "../utils/mail-sender";
 import speakeasy from "speakeasy";
 import qrcode from "qrcode";
+import { sendEmail } from "../queue/queue";
+import { worker } from "../queue/worker";
 
 export const registerUser = async (
   req: Request,
@@ -77,20 +79,23 @@ export const loginUser = async (
 
     await pool.query(`select update_otp($1, $2)`, [emails, otp]);
 
-    const mail = await mailSender(
-      emails,
-      "OTP Verification",
-      `<h3>Verify your OPT: ${otp}</h3>`
-    );
+    await sendEmail({
+      from: process.env.MAIL_USER,
+      to: emails,
+      subject: "OTP Verification",
+      html: `<h3>Verify your OPT: ${otp}</h3>`,
+    });
+    worker.run();
 
-    if (mail) {
-      res.status(200).json({
-        message: "OTP has been sent to your email please verify it first!",
-      });
-      return;
-    }
+    // worker.run();
+    // worker.on("completed", (job) =>
+    //   console.log(`Completed job ${job.id} successfully`)
+    // );
+    // worker.on("failed", (job, err) =>
+    //   console.log(`Failed job ${job.id} with ${err}`)
+    // );
 
-    res.status(200).json({ message: "try again" });
+    res.status(200).json({ message: "check your email" });
   } catch (error) {
     next(error);
   }
