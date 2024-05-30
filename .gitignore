@@ -3,3 +3,4 @@ dist
 build
 test.json
 src/models
+.env
